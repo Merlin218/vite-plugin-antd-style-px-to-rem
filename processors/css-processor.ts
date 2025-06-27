@@ -52,8 +52,8 @@ export function processCssTemplate(cssContent: string, options: ProcessOptions):
 			const previousLineIsIgnoreComment =
 				index > 0 &&
 				lines[index - 1] &&
-				(lines[index - 1].trim().includes("antd-style-px-to-rem ignore") || lines[index - 1].trim().includes("antd-style-px-to-rem ignore")) &&
-				!lines[index - 1].includes(":") // Previous line should be comment only, not a property
+				(lines[index - 1]!.trim().includes("antd-style-px-to-rem ignore") || lines[index - 1]!.trim().includes("antd-style-px-to-rem ignore")) &&
+				!lines[index - 1]!.includes(":") // Previous line should be comment only, not a property
 
 			// Skip processing if affected by previous line ignore comment
 			if (previousLineIsIgnoreComment) {
@@ -62,10 +62,10 @@ export function processCssTemplate(cssContent: string, options: ProcessOptions):
 
 			const propertyMatch = line.match(/^(\s*)(-{0,2}[a-zA-Z_][a-zA-Z0-9_-]*)(\s*:\s*)(.*)$/)
 			if (propertyMatch) {
-				const indentation = propertyMatch[1]
-				const propName = propertyMatch[2]
-				const colonPart = propertyMatch[3]
-				let value = propertyMatch[4]
+				const indentation = propertyMatch[1] || ""
+				const propName = propertyMatch[2] || ""
+				const colonPart = propertyMatch[3] || ""
+				let value = propertyMatch[4] || ""
 
 				// Don't convert if current line has ignore comment
 				if (shouldConvertProperty(propName, propList) && !currentLineHasIgnore) {
