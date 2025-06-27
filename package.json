@@ -1,0 +1,78 @@
+{
+  "name": "vite-plugin-antd-style-px-to-rem",
+  "version": "1.0.0",
+  "description": "A Vite plugin that automatically converts px values to rem units in antd-style CSS template literals, createStyles functions, and JSX attributes during build time",
+  "keywords": [
+    "vite",
+    "plugin",
+    "antd-style",
+    "px-to-rem",
+    "css",
+    "rem",
+    "responsive",
+    "createStyles",
+    "template-literal"
+  ],
+  "homepage": "https://github.com/merlin218/vite-plugin-antd-style-px-to-rem#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/merlin218/vite-plugin-antd-style-px-to-rem.git"
+  },
+  "bugs": {
+    "url": "https://github.com/merlin218/vite-plugin-antd-style-px-to-rem/issues"
+  },
+  "author": "merlin218",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "README-zh.md"
+  ],
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts,.tsx --fix",
+    "format": "prettier --write .",
+    "prepublishOnly": "npm run build && npm run test && npm run typecheck",
+    "release": "npm run prepublishOnly && npm publish"
+  },
+  "peerDependencies": {
+    "vite": ">=2.0.0"
+  },
+  "dependencies": {
+    "@babel/generator": "^7.23.6",
+    "@babel/parser": "^7.23.6",
+    "@babel/traverse": "^7.23.6",
+    "@babel/types": "^7.23.6"
+  },
+  "devDependencies": {
+    "@types/babel__generator": "^7.6.8",
+    "@types/babel__traverse": "^7.20.5",
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "prettier": "^3.1.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.0",
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0",
+    "@vitest/coverage-v8": "^1.0.0"
+  }
+}
