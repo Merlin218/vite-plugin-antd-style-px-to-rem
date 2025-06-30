@@ -1,5 +1,5 @@
-import type { TemplateLiteral, ProcessOptions } from "../types"
-import { shouldConvertProperty, createPxToRemConverter } from "../utils"
+import { createPxToRemConverter, shouldConvertProperty } from "../utils"
+import type { ProcessOptions, TemplateLiteral } from "../types"
 
 /**
  * Convert px values to rem in CSS template strings
@@ -60,7 +60,7 @@ export function processCssTemplate(cssContent: string, options: ProcessOptions):
 				return line
 			}
 
-			const propertyMatch = line.match(/^(\s*)(-{0,2}[a-zA-Z_][a-zA-Z0-9_-]*)(\s*:\s*)(.*)$/)
+			const propertyMatch = /^(\s*)(-{0,2}[A-Z_a-z][\w-]*)(\s*:\s*)(.*)$/.exec(line)
 			if (propertyMatch) {
 				const indentation = propertyMatch[1] || ""
 				const propName = propertyMatch[2] || ""
@@ -69,7 +69,7 @@ export function processCssTemplate(cssContent: string, options: ProcessOptions):
 
 				// Don't convert if current line has ignore comment
 				if (shouldConvertProperty(propName, propList) && !currentLineHasIgnore) {
-					const processedValue = value.replace(pxRegex, (match, numStr) => {
+					const processedValue = value.replaceAll(pxRegex, (match, numStr) => {
 						const convertedValue = pxToRem(numStr)
 						if (convertedValue !== match) {
 							hasChanges = true
@@ -82,7 +82,7 @@ export function processCssTemplate(cssContent: string, options: ProcessOptions):
 			} else if (propList.includes("*") && !propList.some((p) => p.startsWith("!"))) {
 				// Only use fallback wildcard conversion if there are no exclusions and no ignore comment
 				if (!currentLineHasIgnore) {
-					const processedLine = line.replace(pxRegex, (match, numStr) => {
+					const processedLine = line.replaceAll(pxRegex, (match, numStr) => {
 						const convertedValue = pxToRem(numStr)
 						if (convertedValue !== match) {
 							hasChanges = true

@@ -1,5 +1,5 @@
-import type { TemplateLiteral } from "./types"
 import { lengthProperties } from "./constants"
+import type { TemplateLiteral } from "./types"
 
 /**
  * Check if a file should be processed based on include/exclude patterns
@@ -47,7 +47,7 @@ export function shouldConvertProperty(propName: string, propList: string[]): boo
 	// Get exclusion list (properties starting with !)
 	const exclusions = propList
 		.filter((prop) => prop.startsWith("!"))
-		.map((prop) => prop.substring(1))
+		.map((prop) => prop.slice(1))
 
 	// Get inclusion list (properties not starting with !)
 	const inclusions = propList.filter((prop) => !prop.startsWith("!"))
@@ -89,12 +89,12 @@ export function createPxToRemConverter(options: {
 	minPixelValue: number
 }) {
 	return function pxtorem(value: string | number): string {
-		const num = typeof value === "string" ? parseFloat(value) : value
-		if (isNaN(num) || Math.abs(num) <= options.minPixelValue) {
+		const num = typeof value === "string" ? Number.parseFloat(value) : value
+		if (Number.isNaN(num) || Math.abs(num) <= options.minPixelValue) {
 			return String(value)
 		}
 		const rem = num / options.rootValue
-		const remValue = parseFloat(rem.toFixed(options.unitPrecision))
+		const remValue = Number.parseFloat(rem.toFixed(options.unitPrecision))
 		if (remValue === 0) {
 			return "0"
 		}

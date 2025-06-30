@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { antdStylePxToRem } from ".."
 
 describe("Error Handling", () => {
@@ -43,7 +43,9 @@ describe("Error Handling", () => {
 
 	it("should handle module import errors gracefully", () => {
 		// Mock console.error to avoid noise in test output
-		const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+		const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {
+			// Mock implementation to avoid console noise
+		})
 
 		const plugin = antdStylePxToRem()
 		const transform =

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest"
+import { describe, expect, it } from "vitest"
 import { antdStylePxToRem } from ".."
 
 describe("Edge Cases and Error Handling", () => {
@@ -163,7 +163,7 @@ describe("Edge Cases and Error Handling", () => {
 			}))`,
 		]
 
-		corruptedCodes.forEach((code, index) => {
+		for (const [index, code] of corruptedCodes.entries()) {
 			expect(() => {
 				const result = transform.call({}, code, `/src/corrupted${index}.tsx`)
 				// Should either return null or valid transformation, but not throw
@@ -171,7 +171,7 @@ describe("Edge Cases and Error Handling", () => {
 					true,
 				)
 			}).not.toThrow()
-		})
+		}
 	})
 
 	it("should handle very long lines and performance edge cases", () => {
@@ -187,7 +187,7 @@ describe("Edge Cases and Error Handling", () => {
 				: (plugin.transform as any)?.handler
 
 		// Generate a very long CSS property value
-		const longValue = Array(1000).fill("10px").join(" ")
+		const longValue = Array.from({length: 1000}).fill("10px").join(" ")
 		const code = `
 			import { createStyles } from 'antd-style'
 			export const useStyles = createStyles(({ css }) => ({
@@ -231,13 +231,13 @@ describe("Edge Cases and Error Handling", () => {
 			export const useStyles = createStyles(() => ({}))`,
 		]
 
-		codes.forEach((code, index) => {
+		for (const [index, code] of codes.entries()) {
 			expect(() => {
 				const result = transform.call({}, code, `/src/empty${index}.tsx`)
 				// Should return null (no transformation needed)
 				expect(result).toBeNull()
 			}).not.toThrow()
-		})
+		}
 	})
 
 	it("should handle malformed style attributes gracefully", () => {
@@ -267,7 +267,7 @@ describe("Edge Cases and Error Handling", () => {
 			`const Component = () => <div style={someVariable}>Content</div>`,
 		]
 
-		malformedCodes.forEach((code, index) => {
+		for (const [index, code] of malformedCodes.entries()) {
 			expect(() => {
 				const result = transform.call({}, code, `/src/malformed${index}.tsx`)
 				// Should either return null or valid transformation, but not throw
@@ -275,7 +275,7 @@ describe("Edge Cases and Error Handling", () => {
 					true,
 				)
 			}).not.toThrow()
-		})
+		}
 	})
 
 	it("should handle zero values in style attribute correctly", () => {

@@ -1,12 +1,12 @@
-import type {
-	Node,
-	TaggedTemplateExpression,
-	TemplateLiteral,
-	Expression,
-	ProcessOptions,
-} from "../types"
 import { createPxToRemConverter } from "../utils"
 import { processTemplateQuasis } from "./css-processor"
+import type {
+	Expression,
+	Node,
+	ProcessOptions,
+	TaggedTemplateExpression,
+	TemplateLiteral,
+} from "../types"
 
 /**
  * Check if a node is a target template expression
@@ -17,7 +17,7 @@ export function isTargetTemplateExpression(
 ): node is TaggedTemplateExpression {
 	if (node.type !== "TaggedTemplateExpression") return false
 
-	const tag = node.tag
+	const {tag} = node
 
 	// Handle direct function calls like: css`...`
 	if (tag.type === "Identifier") {
@@ -53,8 +53,8 @@ export function processTemplateExpressions(
 		if (expr.type === "StringLiteral") {
 			const originalValue = expr.value
 			const pxRegex = /(-?\d*\.?\d+)px/g
-			const newValue = originalValue.replace(pxRegex, (match, numStr) => {
-				const pxValue = parseFloat(numStr)
+			const newValue = originalValue.replaceAll(pxRegex, (match, numStr) => {
+				const pxValue = Number.parseFloat(numStr)
 				if (isNaN(pxValue) || Math.abs(pxValue) < options.minPixelValue) {
 					return match
 				}

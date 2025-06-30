@@ -1,18 +1,18 @@
-import type {
-	ObjectExpression,
-	StringLiteral,
-	ProcessOptions,
-	ConditionalExpression,
-	CallExpression,
-	AntdStylePxToRemOptions,
-} from "../types"
 import {
-	shouldConvertProperty,
+	createPxToRemConverter,
 	hasVariableExpressions,
 	isLengthProperty,
-	createPxToRemConverter,
+	shouldConvertProperty,
 } from "../utils"
 import { processTemplateQuasis } from "./css-processor"
+import type {
+	AntdStylePxToRemOptions,
+	CallExpression,
+	ConditionalExpression,
+	ObjectExpression,
+	ProcessOptions,
+	StringLiteral,
+} from "../types"
 
 /**
  * Process JSX style object expressions to convert px values to rem
@@ -45,18 +45,22 @@ export function processStyleObjectExpression(
 			const shouldConvert = shouldConvertProperty(propName, options.propList)
 
 			// Process different value types
-			if (property.value.type === "StringLiteral") {
+			switch (property.value.type) {
+			case "StringLiteral": {
 				if (!shouldConvert) continue
 				const originalValue = property.value.value
 				const pxRegex = /(-?\d*\.?\d+)px/g
 				if (pxRegex.test(originalValue)) {
-					const newValue = originalValue.replace(pxRegex, (_, numStr) => pxtorem(numStr))
+					const newValue = originalValue.replaceAll(pxRegex, (_, numStr) => pxtorem(numStr))
 					if (newValue !== originalValue) {
 						property.value.value = newValue
 						hasChanges = true
 					}
 				}
-			} else if (property.value.type === "NumericLiteral") {
+			
+			break;
+			}
+			case "NumericLiteral": {
 				if (!shouldConvert) continue
 				if (isLengthProperty(propName)) {
 					const newValue = pxtorem(property.value.value)
@@ -67,18 +71,28 @@ export function processStyleObjectExpression(
 					} as StringLiteral
 					hasChanges = true
 				}
-			} else if (property.value.type === "TemplateLiteral") {
+			
+			break;
+			}
+			case "TemplateLiteral": {
 				// Only process template literals without variable expressions
 				if (!shouldConvert || hasVariableExpressions(property.value)) continue
 
 				if (processTemplateQuasis(property.value, options)) {
 					hasChanges = true
 				}
-			} else if (property.value.type === "ConditionalExpression") {
+			
+			break;
+			}
+			case "ConditionalExpression": {
 				// Handle conditional property values like { padding: condition ? 10 : 20 }
 				if (processConditionalPropertyValue(property.value, propName, options)) {
 					hasChanges = true
 				}
+			
+			break;
+			}
+			// No default
 			}
 		}
 	}
@@ -144,7 +158,8 @@ export function processConditionalPropertyValue(
 	})
 
 	// Process consequent (true branch)
-	if (conditionalExpression.consequent.type === "NumericLiteral") {
+	switch (conditionalExpression.consequent.type) {
+	case "NumericLiteral": {
 		if (isLengthProperty(propName)) {
 			const newValue = pxtorem(conditionalExpression.consequent.value)
 			conditionalExpression.consequent = {
@@ -153,25 +168,36 @@ export function processConditionalPropertyValue(
 			} as StringLiteral
 			hasChanges = true
 		}
-	} else if (conditionalExpression.consequent.type === "StringLiteral") {
+	
+	break;
+	}
+	case "StringLiteral": {
 		const originalValue = conditionalExpression.consequent.value
 		const pxRegex = /(-?\d*\.?\d+)px/g
 		if (pxRegex.test(originalValue)) {
-			const newValue = originalValue.replace(pxRegex, (_, numStr) => pxtorem(numStr))
+			const newValue = originalValue.replaceAll(pxRegex, (_, numStr) => pxtorem(numStr))
 			if (newValue !== originalValue) {
 				conditionalExpression.consequent.value = newValue
 				hasChanges = true
 			}
 		}
-	} else if (conditionalExpression.consequent.type === "ConditionalExpression") {
+	
+	break;
+	}
+	case "ConditionalExpression": {
 		// Handle nested conditional expressions
 		if (processConditionalPropertyValue(conditionalExpression.consequent, propName, options)) {
 			hasChanges = true
 		}
+	
+	break;
+	}
+	// No default
 	}
 
 	// Process alternate (false branch)
-	if (conditionalExpression.alternate.type === "NumericLiteral") {
+	switch (conditionalExpression.alternate.type) {
+	case "NumericLiteral": {
 		if (isLengthProperty(propName)) {
 			const newValue = pxtorem(conditionalExpression.alternate.value)
 			conditionalExpression.alternate = {
@@ -180,21 +206,31 @@ export function processConditionalPropertyValue(
 			} as StringLiteral
 			hasChanges = true
 		}
-	} else if (conditionalExpression.alternate.type === "StringLiteral") {
+	
+	break;
+	}
+	case "StringLiteral": {
 		const originalValue = conditionalExpression.alternate.value
 		const pxRegex = /(-?\d*\.?\d+)px/g
 		if (pxRegex.test(originalValue)) {
-			const newValue = originalValue.replace(pxRegex, (_, numStr) => pxtorem(numStr))
+			const newValue = originalValue.replaceAll(pxRegex, (_, numStr) => pxtorem(numStr))
 			if (newValue !== originalValue) {
 				conditionalExpression.alternate.value = newValue
 				hasChanges = true
 			}
 		}
-	} else if (conditionalExpression.alternate.type === "ConditionalExpression") {
+	
+	break;
+	}
+	case "ConditionalExpression": {
 		// Handle nested conditional expressions
 		if (processConditionalPropertyValue(conditionalExpression.alternate, propName, options)) {
 			hasChanges = true
 		}
+	
+	break;
+	}
+	// No default
 	}
 
 	return hasChanges
@@ -266,7 +302,7 @@ export function processCompiledJSXCall(
 				}
 			}
 			// Handle configured component attributes
-			else if (options.jsxAttributeMapping && options.jsxAttributeMapping[componentName]?.includes(propName)) {
+			else if (options.jsxAttributeMapping?.[componentName]?.includes(propName)) {
 				// Check if the attribute value is a numeric literal
 				if (property.value.type === "NumericLiteral") {
 					const numValue = property.value.value
@@ -274,7 +310,7 @@ export function processCompiledJSXCall(
 					// Convert numeric value to rem string
 					if (
 						typeof numValue === "number" &&
-						!isNaN(numValue) &&
+						!Number.isNaN(numValue) &&
 						Math.abs(numValue) > processOptions.minPixelValue
 					) {
 						const remValue = pxtorem(numValue)
@@ -293,7 +329,7 @@ export function processCompiledJSXCall(
 					const originalValue = property.value.value
 					const pxRegex = /(-?\d*\.?\d+)px/g
 					if (pxRegex.test(originalValue)) {
-						const newValue = originalValue.replace(pxRegex, (_, numStr) => pxtorem(numStr))
+						const newValue = originalValue.replaceAll(pxRegex, (_, numStr) => pxtorem(numStr))
 						if (newValue !== originalValue) {
 							property.value.value = newValue
 							hasChanges = true

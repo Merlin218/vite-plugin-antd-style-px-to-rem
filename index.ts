@@ -1,8 +1,8 @@
 import type { Plugin } from "vite"
-import { parse } from "@babel/parser"
-import traverse from "@babel/traverse"
 import type { NodePath } from "@babel/traverse"
 import generate from "@babel/generator"
+import { parse } from "@babel/parser"
+import traverse from "@babel/traverse"
 
 // Fix for @babel/traverse default export issue with better error handling
 const babelTraverse = (() => {
@@ -21,28 +21,28 @@ const babelGenerate = (() => {
 })()
 
 // Import types and utilities from separate modules
+import { defaultOptions } from "./constants"
+// CSS processing is now handled via ast-processor
+import { isTargetTemplateExpression, processCompleteTemplate } from "./processors/ast-processor"
+import {
+	processCompiledJSXCall,
+	processConditionalExpression,
+	processStyleObjectExpression,
+} from "./processors/jsx-processor"
+import {
+	createPxToRemConverter,
+	isLengthProperty,
+	shouldConvertProperty,
+	shouldProcess,
+} from "./utils"
 import type {
 	AntdStylePxToRemOptions,
-	TaggedTemplateExpression,
 	CallExpression,
-	ObjectProperty,
 	JSXElement,
+	ObjectProperty,
 	StringLiteral,
+	TaggedTemplateExpression,
 } from "./types"
-import { defaultOptions } from "./constants"
-import {
-	shouldProcess,
-	shouldConvertProperty,
-	isLengthProperty,
-	createPxToRemConverter,
-} from "./utils"
-// CSS processing is now handled via ast-processor
-import {
-	processStyleObjectExpression,
-	processConditionalExpression,
-	processCompiledJSXCall,
-} from "./processors/jsx-processor"
-import { isTargetTemplateExpression, processCompleteTemplate } from "./processors/ast-processor"
 
 // Re-export types and main function
 export type { AntdStylePxToRemOptions } from "./types"
@@ -66,11 +66,11 @@ export function antdStylePxToRem(options: AntdStylePxToRemOptions = {}): Plugin 
 			// Skip if code doesn't contain target functions, createStyles, or JSX attributes (when enabled)
 			const hasTargetFunctions = mergedOptions.cssTemplateFunctions.some((fn) => {
 				const patterns = [
-					fn + "`", // css`...`
-					"." + fn + "`", // styled.css`...`
-					" " + fn + "`", // { css }`...`
-					"(" + fn + "`", // (css)`...`
-					"{" + fn + "`", // {css}`...`
+					`${fn}\``, // css`...`
+					`.${fn}\``, // styled.css`...`
+					` ${fn}\``, // { css }`...`
+					`(${fn}\``, // (css)`...`
+					`{${fn}\``, // {css}`...`
 				]
 				return patterns.some((pattern) => code.includes(pattern))
 			})
@@ -125,7 +125,7 @@ export function antdStylePxToRem(options: AntdStylePxToRemOptions = {}): Plugin 
 				// Traverse AST to find and process CSS template literals
 				babelTraverse(ast, {
 					TaggedTemplateExpression(path: NodePath<TaggedTemplateExpression>) {
-						const node = path.node
+						const {node} = path
 
 						if (isTargetTemplateExpression(node, mergedOptions.cssTemplateFunctions)) {
 							const templateChanged = processCompleteTemplate(
@@ -138,8 +138,8 @@ export function antdStylePxToRem(options: AntdStylePxToRemOptions = {}): Plugin 
 						}
 					},
 					CallExpression(path: NodePath<CallExpression>) {
-						const node = path.node
-						const callee = node.callee
+						const {node} = path
+						const {callee} = node
 
 						// Handle compiled JSX calls (_jsx, _jsxs, createElement)
 						if (mergedOptions.enableJSXTransform) {
@@ -198,12 +198,13 @@ export function antdStylePxToRem(options: AntdStylePxToRemOptions = {}): Plugin 
 									processOptions.propList,
 								)
 
-								if (valueNode.type === "StringLiteral") {
+								switch (valueNode.type) {
+								case "StringLiteral": {
 									if (!shouldConvert) return
 									const originalValue = valueNode.value
 									const pxRegex = /(-?\d*\.?\d+)px/g
 									if (pxRegex.test(originalValue)) {
-										const newValue = originalValue.replace(
+										const newValue = originalValue.replaceAll(
 											pxRegex,
 											(_, numStr) => pxToRem(numStr),
 										)
@@ -215,7 +216,10 @@ export function antdStylePxToRem(options: AntdStylePxToRemOptions = {}): Plugin 
 											hasChanges = true
 										}
 									}
-								} else if (valueNode.type === "NumericLiteral") {
+								
+								break;
+								}
+								case "NumericLiteral": {
 									if (!shouldConvert) return
 									if (isLengthProperty(propName)) {
 										const newValue = pxToRem(valueNode.value)
@@ -224,17 +228,24 @@ export function antdStylePxToRem(options: AntdStylePxToRemOptions = {}): Plugin 
 											.replaceWith({ type: "StringLiteral", value: newValue })
 										hasChanges = true
 									}
-								} else if (valueNode.type === "TemplateLiteral") {
+								
+								break;
+								}
+								case "TemplateLiteral": {
 									if (processCompleteTemplate(valueNode, processOptions)) {
 										hasChanges = true
 									}
+								
+								break;
+								}
+								// No default
 								}
 							},
 						})
 					},
 					JSXElement(path: NodePath<JSXElement>) {
-						const node = path.node
-						const openingElement = node.openingElement
+						const {node} = path
+						const {openingElement} = node
 
 						// Check for ignore comment using line-based approach
 						const nodeStart = node.loc?.start.line

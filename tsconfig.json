@@ -13,14 +13,13 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "dist",
-    "rootDir": ".",
     "removeComments": false,
     "noEmitOnError": true,
     "preserveWatchOutput": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "exactOptionalPropertyTypes": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
@@ -29,17 +28,11 @@
     "useDefineForClassFields": true
   },
   "include": [
-    "index.ts",
-    "types.ts",
-    "constants.ts",
-    "utils.ts",
-    "processors/**/*.ts"
+    "**/*.ts",
+    "**/*.tsx"
   ],
   "exclude": [
     "node_modules",
-    "dist",
-    "__tests__",
-    "**/*.test.ts",
-    "**/*.spec.ts"
+    "dist"
   ]
 } 
