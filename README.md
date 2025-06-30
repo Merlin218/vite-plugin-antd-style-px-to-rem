@@ -398,6 +398,33 @@ npm test
 npm run build
 ```
 
+## 🤝 Contributing
+
+We welcome contributions! This project uses semantic-release for automated versioning and publishing.
+
+### Quick Start for Contributors
+
+```bash
+# Use conventional commits for automatic versioning
+pnpm run commit
+
+# Run tests and checks
+pnpm run test
+pnpm run typecheck
+pnpm run lint
+```
+
+### Release Process
+
+- **Automatic releases** triggered by commits to `main`, `beta`, or `alpha` branches
+- **Conventional commits** determine version bumps:
+  - `feat:` → minor version bump
+  - `fix:` → patch version bump  
+  - `feat!:` or `BREAKING CHANGE:` → major version bump
+- **Semantic-release** handles versioning, changelog, and npm publishing
+
+For detailed contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## 📄 License
 
 MIT License - see the [LICENSE](LICENSE) file for details.

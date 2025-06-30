@@ -3,6 +3,8 @@ import type {
 	StringLiteral,
 	ProcessOptions,
 	ConditionalExpression,
+	CallExpression,
+	AntdStylePxToRemOptions,
 } from "../types"
 import {
 	shouldConvertProperty,
@@ -192,6 +194,113 @@ export function processConditionalPropertyValue(
 		// Handle nested conditional expressions
 		if (processConditionalPropertyValue(conditionalExpression.alternate, propName, options)) {
 			hasChanges = true
+		}
+	}
+
+	return hasChanges
+}
+
+/**
+ * Process compiled JSX calls (_jsx, _jsxs, createElement) to convert px values to rem
+ * Handles patterns like: _jsx("div", { style: { width: 100 }, size: 24 })
+ */
+export function processCompiledJSXCall(
+	callExpression: CallExpression,
+	options: AntdStylePxToRemOptions,
+	processOptions: ProcessOptions,
+): boolean {
+	let hasChanges = false
+	const args = callExpression.arguments
+
+	// Compiled JSX calls should have at least 2 arguments: (component, props, ...)
+	if (args.length < 2) {
+		return false
+	}
+
+	// First argument is the component (string or identifier)
+	const componentArg = args[0]
+	let componentName = ""
+
+	if (componentArg && componentArg.type === "StringLiteral") {
+		componentName = componentArg.value
+	} else if (componentArg && componentArg.type === "Identifier") {
+		componentName = componentArg.name
+	}
+
+	// Second argument should be the props object
+	const propsArg = args[1]
+	if (!propsArg || propsArg.type !== "ObjectExpression") {
+		return false
+	}
+
+	const pxtorem = createPxToRemConverter({
+		rootValue: processOptions.rootValue,
+		unitPrecision: processOptions.unitPrecision,
+		minPixelValue: processOptions.minPixelValue,
+	})
+
+	// Process each property in the props object
+	for (const property of propsArg.properties) {
+		if (property.type === "ObjectProperty") {
+			let propName = ""
+
+			// Get property name
+			if (property.key.type === "Identifier") {
+				propName = property.key.name
+			} else if (property.key.type === "StringLiteral") {
+				propName = property.key.value
+			}
+
+			if (!propName) continue
+
+			// Handle style attribute - process on all components
+			if (propName === "style" && property.value.type === "ObjectExpression") {
+				if (processStyleObjectExpression(property.value, processOptions)) {
+					hasChanges = true
+				}
+			}
+			// Handle style attribute with conditional expressions
+			else if (propName === "style" && property.value.type === "ConditionalExpression") {
+				if (processConditionalExpression(property.value, processOptions)) {
+					hasChanges = true
+				}
+			}
+			// Handle configured component attributes
+			else if (options.jsxAttributeMapping && options.jsxAttributeMapping[componentName]?.includes(propName)) {
+				// Check if the attribute value is a numeric literal
+				if (property.value.type === "NumericLiteral") {
+					const numValue = property.value.value
+
+					// Convert numeric value to rem string
+					if (
+						typeof numValue === "number" &&
+						!isNaN(numValue) &&
+						Math.abs(numValue) > processOptions.minPixelValue
+					) {
+						const remValue = pxtorem(numValue)
+
+						// Replace numeric literal with string literal
+						property.value = {
+							type: "StringLiteral",
+							value: remValue,
+						} as StringLiteral
+
+						hasChanges = true
+					}
+				}
+				// Handle string literals with px values
+				else if (property.value.type === "StringLiteral") {
+					const originalValue = property.value.value
+					const pxRegex = /(-?\d*\.?\d+)px/g
+					if (pxRegex.test(originalValue)) {
+						const newValue = originalValue.replace(pxRegex, (_, numStr) => pxtorem(numStr))
+						if (newValue !== originalValue) {
+							property.value.value = newValue
+							hasChanges = true
+						}
+					}
+				}
+			}
 		}
 	}
 

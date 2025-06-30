@@ -746,4 +746,343 @@ describe("JSX Transform Support", () => {
 			}
 		})
 	})
+
+	describe("Compiled JSX Support", () => {
+		it("should handle _jsx calls with numeric attributes", () => {
+			const plugin = antdStylePxToRem({
+				rootValue: 16,
+				propList: ["*"],
+				minPixelValue: 0,
+				enableJSXTransform: true,
+				jsxAttributeMapping: { "Avatar": ["size"] },
+			})
+
+			const transform =
+				typeof plugin.transform === "function"
+					? plugin.transform
+					: (plugin.transform as any)?.handler
+
+			const code = `
+				import { jsx as _jsx } from "react/jsx-runtime"
+				
+				const component = _jsx(Avatar, {
+					shape: "square",
+					size: 34,
+					src: data.avatar_url,
+					children: data.name || (data === null || data === void 0 ? void 0 : data.real_name)
+				})
+			`
+
+			const result = transform.call({}, code, "/src/component.tsx")
+
+			if (result && typeof result === "object" && "code" in result) {
+				// size: 34 should be converted to size: "2.125rem"
+				expect(result.code).toContain('size: "2.125rem"')
+				// Should not contain original numeric value
+				expect(result.code).not.toContain("size: 34")
+				// Other properties should remain unchanged
+				expect(result.code).toContain('shape: "square"')
+				expect(result.code).toContain("src: data.avatar_url")
+			}
+		})
+
+		it("should handle _jsxs calls with multiple numeric attributes", () => {
+			const plugin = antdStylePxToRem({
+				rootValue: 16,
+				propList: ["*"],
+				minPixelValue: 0,
+				enableJSXTransform: true,
+				jsxAttributeMapping: { "Flex": ["gap"] },
+			})
+
+			const transform =
+				typeof plugin.transform === "function"
+					? plugin.transform
+					: (plugin.transform as any)?.handler
+
+			const code = `
+				import { jsxs as _jsxs } from "react/jsx-runtime"
+				
+				const component = _jsxs(Flex, {
+					vertical: true,
+					gap: 12,
+					align: "left",
+					children: [
+						_jsx("div", { children: "Item 1" }),
+						_jsx("div", { children: "Item 2" })
+					]
+				})
+			`
+
+			const result = transform.call({}, code, "/src/component.tsx")
+
+			if (result && typeof result === "object" && "code" in result) {
+				// gap: 12 should be converted to gap: "0.75rem"
+				expect(result.code).toContain('gap: "0.75rem"')
+				// Should not contain original numeric value
+				expect(result.code).not.toContain("gap: 12")
+				// Other properties should remain unchanged
+				expect(result.code).toContain("vertical: true")
+				expect(result.code).toContain('align: "left"')
+			}
+		})
+
+		it("should handle React.createElement calls", () => {
+			const plugin = antdStylePxToRem({
+				rootValue: 16,
+				propList: ["*"],
+				minPixelValue: 0,
+				enableJSXTransform: true,
+				jsxAttributeMapping: { "div": ["width", "height"] },
+			})
+
+			const transform =
+				typeof plugin.transform === "function"
+					? plugin.transform
+					: (plugin.transform as any)?.handler
+
+			const code = `
+				import React from "react"
+				
+				const component = React.createElement("div", {
+					width: 100,
+					height: 200,
+					className: "container"
+				}, "Content")
+			`
+
+			const result = transform.call({}, code, "/src/component.tsx")
+
+			if (result && typeof result === "object" && "code" in result) {
+				// width: 100 should be converted to width: "6.25rem"
+				expect(result.code).toContain('width: "6.25rem"')
+				// height: 200 should be converted to height: "12.5rem"
+				expect(result.code).toContain('height: "12.5rem"')
+				// Should not contain original numeric values
+				expect(result.code).not.toContain("width: 100")
+				expect(result.code).not.toContain("height: 200")
+				// Other properties should remain unchanged
+				expect(result.code).toContain('className: "container"')
+			}
+		})
+
+		it("should handle createElement calls without React prefix", () => {
+			const plugin = antdStylePxToRem({
+				rootValue: 16,
+				propList: ["*"],
+				minPixelValue: 0,
+				enableJSXTransform: true,
+				jsxAttributeMapping: { "Button": ["size"] },
+			})
+
+			const transform =
+				typeof plugin.transform === "function"
+					? plugin.transform
+					: (plugin.transform as any)?.handler
+
+			const code = `
+				import { createElement } from "react"
+				
+				const component = createElement(Button, {
+					size: 24,
+					type: "primary"
+				}, "Click me")
+			`
+
+			const result = transform.call({}, code, "/src/component.tsx")
+
+			if (result && typeof result === "object" && "code" in result) {
+				// size: 24 should be converted to size: "1.5rem"
+				expect(result.code).toContain('size: "1.5rem"')
+				// Should not contain original numeric value
+				expect(result.code).not.toContain("size: 24")
+				// Other properties should remain unchanged
+				expect(result.code).toContain('type: "primary"')
+			}
+		})
+
+		it("should handle compiled JSX with style attribute", () => {
+			const plugin = antdStylePxToRem({
+				rootValue: 16,
+				propList: ["*"],
+				minPixelValue: 0,
+				enableJSXTransform: true,
+			})
+
+			const transform =
+				typeof plugin.transform === "function"
+					? plugin.transform
+					: (plugin.transform as any)?.handler
+
+			const code = `
+				import { jsx as _jsx } from "react/jsx-runtime"
+				
+				const component = _jsx("div", {
+					style: {
+						width: 100,
+						height: 200,
+						padding: "16px"
+					},
+					className: "container"
+				})
+			`
+
+			const result = transform.call({}, code, "/src/component.tsx")
+
+			if (result && typeof result === "object" && "code" in result) {
+				// Style properties should be converted
+				expect(result.code).toContain('width: "6.25rem"')
+				expect(result.code).toContain('height: "12.5rem"')
+				expect(result.code).toContain('padding: "1rem"')
+				// Should not contain original values
+				expect(result.code).not.toContain("width: 100")
+				expect(result.code).not.toContain("height: 200")
+				expect(result.code).not.toContain('"16px"')
+			}
+		})
+
+		it("should handle mixed source JSX and compiled JSX", () => {
+			const plugin = antdStylePxToRem({
+				rootValue: 16,
+				propList: ["*"],
+				minPixelValue: 0,
+				enableJSXTransform: true,
+				jsxAttributeMapping: { "Flex": ["gap"], "Button": ["size"] },
+			})
+
+			const transform =
+				typeof plugin.transform === "function"
+					? plugin.transform
+					: (plugin.transform as any)?.handler
+
+			const code = `
+				import { jsx as _jsx } from "react/jsx-runtime"
+				import { Flex, Button } from "antd"
+				
+				const Component = () => {
+					return (
+						<Flex gap={16} style={{ padding: 20 }}>
+							{_jsx(Button, { size: 24, type: "primary" })}
+						</Flex>
+					)
+				}
+			`
+
+			const result = transform.call({}, code, "/src/component.tsx")
+
+			if (result && typeof result === "object" && "code" in result) {
+				// Source JSX attributes should be converted
+				expect(result.code).toContain('gap={"1rem"}')
+				expect(result.code).toContain('padding: "1.25rem"')
+				// Compiled JSX attributes should be converted
+				expect(result.code).toContain('size: "1.5rem"')
+				// Should not contain original values
+				expect(result.code).not.toContain("gap={16}")
+				expect(result.code).not.toContain("padding: 20")
+				expect(result.code).not.toContain("size: 24")
+			}
+		})
+
+		it("should respect minPixelValue for compiled JSX", () => {
+			const plugin = antdStylePxToRem({
+				rootValue: 16,
+				propList: ["*"],
+				minPixelValue: 10,
+				enableJSXTransform: true,
+				jsxAttributeMapping: { "Flex": ["gap"] },
+			})
+
+			const transform =
+				typeof plugin.transform === "function"
+					? plugin.transform
+					: (plugin.transform as any)?.handler
+
+			const code = `
+				import { jsx as _jsx } from "react/jsx-runtime"
+				
+				const component = _jsx(Flex, {
+					gap: 8,
+					margin: 16
+				})
+			`
+
+			const result = transform.call({}, code, "/src/component.tsx")
+
+			if (result && typeof result === "object" && "code" in result) {
+				// gap: 8 should not be converted (< minPixelValue)
+				expect(result.code).toContain("gap: 8")
+				// margin: 16 should not be converted (not in mapping)
+				expect(result.code).toContain("margin: 16")
+			} else {
+				// Should return null if no changes made
+				expect(result).toBeNull()
+			}
+		})
+
+		it("should handle string px values in compiled JSX", () => {
+			const plugin = antdStylePxToRem({
+				rootValue: 16,
+				propList: ["*"],
+				minPixelValue: 0,
+				enableJSXTransform: true,
+				jsxAttributeMapping: { "CustomComponent": ["width", "height"] },
+			})
+
+			const transform =
+				typeof plugin.transform === "function"
+					? plugin.transform
+					: (plugin.transform as any)?.handler
+
+			const code = `
+				import { jsx as _jsx } from "react/jsx-runtime"
+				
+				const component = _jsx(CustomComponent, {
+					width: "100px",
+					height: "200px",
+					color: "red"
+				})
+			`
+
+			const result = transform.call({}, code, "/src/component.tsx")
+
+			if (result && typeof result === "object" && "code" in result) {
+				// String px values should be converted
+				expect(result.code).toContain('width: "6.25rem"')
+				expect(result.code).toContain('height: "12.5rem"')
+				// Should not contain original px values
+				expect(result.code).not.toContain('"100px"')
+				expect(result.code).not.toContain('"200px"')
+				// Other properties should remain unchanged
+				expect(result.code).toContain('color: "red"')
+			}
+		})
+
+		it("should not process compiled JSX when enableJSXTransform is false", () => {
+			const plugin = antdStylePxToRem({
+				rootValue: 16,
+				propList: ["*"],
+				minPixelValue: 0,
+				enableJSXTransform: false,
+			})
+
+			const transform =
+				typeof plugin.transform === "function"
+					? plugin.transform
+					: (plugin.transform as any)?.handler
+
+			const code = `
+				import { jsx as _jsx } from "react/jsx-runtime"
+				
+				const component = _jsx("div", {
+					style: { width: 100 },
+					size: 24
+				})
+			`
+
+			const result = transform.call({}, code, "/src/component.tsx")
+
+			// Should return null as JSX transform is disabled
+			expect(result).toBeNull()
+		})
+	})
 })

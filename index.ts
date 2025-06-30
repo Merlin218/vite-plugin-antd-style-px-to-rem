@@ -40,6 +40,7 @@ import {
 import {
 	processStyleObjectExpression,
 	processConditionalExpression,
+	processCompiledJSXCall,
 } from "./processors/jsx-processor"
 import { isTargetTemplateExpression, processCompleteTemplate } from "./processors/ast-processor"
 
@@ -80,8 +81,11 @@ export function antdStylePxToRem(options: AntdStylePxToRemOptions = {}): Plugin 
 				 Object.values(mergedOptions.jsxAttributeMapping).flat().some(attr => 
 					code.includes(`${attr}=`)
 				 ))
+			const hasCompiledJSX = 
+				mergedOptions.enableJSXTransform &&
+				(code.includes("_jsx(") || code.includes("_jsxs(") || code.includes("createElement("))
 
-			if (!hasTargetFunctions && !hasCreateStyles && !hasJSXAttributes) {
+			if (!hasTargetFunctions && !hasCreateStyles && !hasJSXAttributes && !hasCompiledJSX) {
 				return null
 			}
 
@@ -136,6 +140,39 @@ export function antdStylePxToRem(options: AntdStylePxToRemOptions = {}): Plugin 
 					CallExpression(path: NodePath<CallExpression>) {
 						const node = path.node
 						const callee = node.callee
+
+						// Handle compiled JSX calls (_jsx, _jsxs, createElement)
+						if (mergedOptions.enableJSXTransform) {
+							let isCompiledJSX = false
+
+							if (callee.type === "Identifier") {
+								// Handle _jsx, _jsxs calls
+								if (callee.name === "_jsx" || callee.name === "_jsxs") {
+									isCompiledJSX = true
+								}
+								// Handle createElement calls
+								else if (callee.name === "createElement") {
+									isCompiledJSX = true
+								}
+							} else if (callee.type === "MemberExpression") {
+								// Handle React.createElement calls
+								if (
+									callee.object.type === "Identifier" &&
+									callee.object.name === "React" &&
+									callee.property.type === "Identifier" &&
+									callee.property.name === "createElement"
+								) {
+									isCompiledJSX = true
+								}
+							}
+
+							if (isCompiledJSX) {
+								if (processCompiledJSXCall(node, mergedOptions, processOptions)) {
+									hasChanges = true
+								}
+								return // Don't process this as createStyles
+							}
+						}
 
 						// Check for createStyles() call
 						if (callee.type !== "Identifier" || callee.name !== "createStyles") {
