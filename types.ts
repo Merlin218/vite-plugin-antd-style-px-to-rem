@@ -65,6 +65,12 @@ export interface AntdStylePxToRemOptions {
 	 * @default true
 	 */
 	enableJSXTransform?: boolean
+	/**
+	 * Component-property mapping for JSX attribute conversion
+	 * @example { "Flex": ["gap"], "Button": ["size"] }
+	 * @default {}
+	 */
+	jsxAttributeMapping?: Record<string, string[]>
 }
 
 export interface ProcessOptions {

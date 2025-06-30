@@ -12,6 +12,7 @@ export const defaultOptions: Required<AntdStylePxToRemOptions> = {
 	exclude: undefined!,
 	cssTemplateFunctions: ["css"],
 	enableJSXTransform: true,
+	jsxAttributeMapping: {},
 }
 
 export const lengthProperties = new Set([

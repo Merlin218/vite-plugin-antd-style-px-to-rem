@@ -76,7 +76,10 @@ export function antdStylePxToRem(options: AntdStylePxToRemOptions = {}): Plugin 
 			const hasCreateStyles = code.includes("createStyles")
 			const hasJSXAttributes =
 				mergedOptions.enableJSXTransform &&
-				(code.includes("style=") || code.includes("gap="))
+				(code.includes("style=") || 
+				 Object.values(mergedOptions.jsxAttributeMapping).flat().some(attr => 
+					code.includes(`${attr}=`)
+				 ))
 
 			if (!hasTargetFunctions && !hasCreateStyles && !hasJSXAttributes) {
 				return null
@@ -266,8 +269,8 @@ export function antdStylePxToRem(options: AntdStylePxToRemOptions = {}): Plugin 
 											}
 										}
 									}
-									// Handle gap attribute on Flex components
-									else if (attrName === "gap" && componentName === "Flex") {
+									// Handle configured component attributes
+									else if (mergedOptions.jsxAttributeMapping[componentName]?.includes(attrName)) {
 										// Check if the attribute value is a numeric literal
 										if (
 											attr.value?.type === "JSXExpressionContainer" &&
