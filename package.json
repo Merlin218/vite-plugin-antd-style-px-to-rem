@@ -1,6 +1,6 @@
 {
   "name": "vite-plugin-antd-style-px-to-rem",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A Vite plugin that automatically converts px values to rem units in antd-style CSS template literals, createStyles functions, and JSX attributes during build time",
   "keywords": [
     "vite",
